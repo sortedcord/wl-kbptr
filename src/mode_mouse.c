@@ -49,7 +49,7 @@ static unsigned dir_for_key(xkb_keysym_t sym) {
         return DIR_UP;
     case XKB_KEY_l:
         return DIR_RIGHT;
-    case XKB_KEY_semicolon:
+    case XKB_KEY_h:
         return DIR_LEFT;
     default:
         return 0;

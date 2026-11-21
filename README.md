@@ -62,7 +62,7 @@ The `mouse` mode keeps the pointer under keyboard control after the area has bee
 | `j` | Move down |
 | `k` | Move up |
 | `l` | Move right |
-| `;` | Move left |
+| `h` | Move left |
 | `f` | Left click (hold to drag while moving) |
 | `d` | Right click |
 | `s` | Middle click |
