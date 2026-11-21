@@ -11,7 +11,8 @@ To enable to select a target and click, it has four different modes:
 - [`tile`](#tile-mode) &mdash; which uses a grid to select areas,
 - [`bisect`](#bisect-mode) &mdash; which enables to bisect an area,
 - [`split`](#split-mode) &mdash; which enables to successively split an area,
-- [`click`](#click-mode) &mdash; which triggers a click in the middle of an area.
+- [`click`](#click-mode) &mdash; which triggers a click in the middle of an area,
+- [`mouse`](#mouse-mode) &mdash; which moves the pointer with the keyboard until `Escape` is pressed.
 
 These are set with the `modes` configuration field and can be chained, e.g. `wl-kbptr -o modes=tile,bisect`.
 
@@ -51,6 +52,23 @@ Just like the `bisect` mode, a left, right and middle click can be made by press
 ### Click mode
 
 The `click` mode simply triggers a click in the middle of the selection area.
+
+### Mouse mode
+
+The `mouse` mode keeps the pointer under keyboard control after the area has been selected. It is meant to be chained after a selection mode, e.g. `wl-kbptr -o modes=floating,mouse -o mode_floating.source=detect`. The pointer is moved to the centre of the selected area and stays under control until `Escape` is pressed.
+
+| Key | Action |
+| --- | ------ |
+| `j` | Move down |
+| `k` | Move up |
+| `l` | Move right |
+| `;` | Move left |
+| `f` | Left click (hold to drag while moving) |
+| `d` | Right click |
+| `s` | Middle click |
+| `Escape` | Exit |
+
+Holding a movement key repeats the movement at the compositor's repeat rate. Movement keys can be combined to move diagonally. The step size is set with `mode_mouse.step` (default `10` pixels).
 
 ## Drag flag
 

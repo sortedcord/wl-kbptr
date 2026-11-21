@@ -142,6 +142,9 @@ struct state {
     int32_t                        drag_start_x;
     int32_t                        drag_start_y;
     int                            drag_phase;
+    int                            repeat_rate;  // keys per second, 0 = off
+    int                            repeat_delay; // milliseconds
+    int                            repeat_timer_fd;
 };
 
 #endif

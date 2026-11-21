@@ -14,10 +14,16 @@ extern struct mode_interface floating_mode_interface;
 extern struct mode_interface bisect_mode_interface;
 extern struct mode_interface split_mode_interface;
 extern struct mode_interface click_mode_interface;
+extern struct mode_interface mouse_mode_interface;
 
 struct mode_interface *mode_interfaces[] = {
-    &tile_mode_interface,  &floating_mode_interface, &bisect_mode_interface,
-    &split_mode_interface, &click_mode_interface,    NULL,
+    &tile_mode_interface,
+    &floating_mode_interface,
+    &bisect_mode_interface,
+    &split_mode_interface,
+    &click_mode_interface,
+    &mouse_mode_interface,
+    NULL,
 };
 
 static struct mode_interface *find_mode_interface_by_name(char *name) {
@@ -153,6 +159,28 @@ void free_mode_states(struct state *state) {
         }
 
         state->mode_interfaces[i]->free(state->mode_states[i]);
+    }
+}
+
+void mode_handle_key_release(struct state *state, xkb_keysym_t sym) {
+    if (has_last_mode_returned(state)) {
+        return;
+    }
+
+    struct mode_interface *mode = state->mode_interfaces[state->current_mode];
+    if (mode->key_release != NULL) {
+        mode->key_release(state, state->mode_states[state->current_mode], sym);
+    }
+}
+
+void mode_handle_timer(struct state *state) {
+    if (has_last_mode_returned(state)) {
+        return;
+    }
+
+    struct mode_interface *mode = state->mode_interfaces[state->current_mode];
+    if (mode->timer != NULL) {
+        mode->timer(state, state->mode_states[state->current_mode]);
     }
 }
 

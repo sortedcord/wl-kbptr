@@ -14,10 +14,13 @@
 #include "xdg-output-unstable-v1-client-protocol.h"
 
 #include <cairo/cairo.h>
+#include <errno.h>
 #include <getopt.h>
+#include <poll.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/timerfd.h>
 #include <unistd.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
@@ -263,6 +266,8 @@ static void handle_keyboard_key(
         } else if (redraw) {
             request_frame(seat->state);
         }
+    } else if (key_state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+        mode_handle_key_release(seat->state, key_sym);
     }
 }
 
@@ -277,13 +282,21 @@ static void handle_keyboard_modifiers(
     );
 }
 
+static void handle_keyboard_repeat_info(
+    void *data, struct wl_keyboard *keyboard, int32_t rate, int32_t delay
+) {
+    struct seat *seat         = data;
+    seat->state->repeat_rate  = rate;
+    seat->state->repeat_delay = delay;
+}
+
 static const struct wl_keyboard_listener wl_keyboard_listener = {
     .keymap      = handle_keyboard_keymap,
     .enter       = noop,
     .leave       = noop,
     .key         = handle_keyboard_key,
     .modifiers   = handle_keyboard_modifiers,
-    .repeat_info = noop,
+    .repeat_info = handle_keyboard_repeat_info,
 };
 
 static void handle_seat_capabilities(
@@ -661,6 +674,54 @@ static void print_version() {
     puts("");
 }
 
+/**
+ * Dispatch Wayland events while also waking up for the repeat timer.
+ *
+ * Equivalent to `while (running && wl_display_dispatch(display))`, plus
+ * handling of `state->repeat_timer_fd`.
+ */
+static void run_event_loop(struct state *state) {
+    struct wl_display *display = state->wl_display;
+
+    while (state->running) {
+        if (wl_display_dispatch_pending(display) < 0) {
+            return;
+        }
+        if (wl_display_flush(display) < 0 && errno != EAGAIN) {
+            return;
+        }
+        if (wl_display_prepare_read(display) != 0) {
+            continue;
+        }
+
+        struct pollfd fds[2] = {
+            {.fd = wl_display_get_fd(display), .events = POLLIN},
+            {.fd = state->repeat_timer_fd, .events = POLLIN},
+        };
+        if (poll(fds, 2, -1) < 0) {
+            wl_display_cancel_read(display);
+            if (errno == EINTR) {
+                continue;
+            }
+            return;
+        }
+
+        if (fds[0].revents & POLLIN) {
+            if (wl_display_read_events(display) < 0) {
+                return;
+            }
+        } else {
+            wl_display_cancel_read(display);
+        }
+
+        if (fds[1].revents & POLLIN) {
+            uint64_t expirations;
+            read(state->repeat_timer_fd, &expirations, sizeof(expirations));
+            mode_handle_timer(state);
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     struct state state = {
         .wl_display          = NULL,
@@ -687,6 +748,9 @@ int main(int argc, char **argv) {
         .drag_start_x = 0,
         .drag_start_y = 0,
         .drag_phase   = 0,
+        .repeat_rate  = 0,
+        .repeat_delay = 0,
+        .repeat_timer_fd = -1,
     };
 
     config_set_default(&state.config);
@@ -922,7 +986,10 @@ int main(int argc, char **argv) {
     wl_surface_set_input_region(state.wl_surface, wl_region);
 
     wl_surface_commit(state.wl_surface);
-    while (state.running && wl_display_dispatch(state.wl_display)) {}
+    state.repeat_timer_fd =
+        timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+    run_event_loop(&state);
+    close(state.repeat_timer_fd);
 
     wp_viewport_destroy(state.wp_viewport);
 

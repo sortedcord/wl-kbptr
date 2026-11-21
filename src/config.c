@@ -98,6 +98,17 @@ static int parse_uint8(void *dest, char *value) {
     return 0;
 }
 
+static int parse_positive_int(void *dest, char *value) {
+    int decoded = atoi(value);
+    if (decoded <= 0) {
+        LOG_ERR("Value should be a positive integer.");
+        return 1;
+    }
+
+    *((int *)dest) = decoded;
+    return 0;
+}
+
 static int parse_relative_font_size(void *dest, char *value) {
     struct relative_font_size *rfs = dest;
 
@@ -376,6 +387,8 @@ struct section_def {
     FIELD(struct mode_click_config, name, default_value, parse, free, desc)
 #define MD_FIELD(name, default_value, parse, free, desc) \
     FIELD(struct mode_drag_config, name, default_value, parse, free, desc)
+#define MM_FIELD(name, default_value, parse, free, desc) \
+    FIELD(struct mode_mouse_config, name, default_value, parse, free, desc)
 
 static void noop() {}
 
@@ -567,6 +580,13 @@ static struct section_def section_defs[] = {
         MD_FIELD(
             start_marker_shape, "caret", parse_drag_marker_shape, noop,
             "Marker shape"
+        )
+    ),
+    SECTION(
+        mode_mouse, "Configuration for mouse mode",
+        MM_FIELD(
+            step, "10", parse_positive_int, noop,
+            "Pixels the pointer moves per key press"
         )
     ),
 };

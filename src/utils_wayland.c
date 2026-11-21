@@ -160,3 +160,51 @@ void drag_pointer(
 
     zwlr_virtual_pointer_v1_destroy(virt_pointer);
 }
+
+struct zwlr_virtual_pointer_v1 *virtual_pointer_create(struct state *state) {
+    if (!state->wl_virtual_pointer_mgr) {
+        return NULL;
+    }
+
+    return zwlr_virtual_pointer_manager_v1_create_virtual_pointer_with_output(
+        state->wl_virtual_pointer_mgr,
+        ((struct seat *)state->seats.next)->wl_seat,
+        state->current_output->wl_output
+    );
+}
+
+void virtual_pointer_move_absolute(
+    struct state *state, struct zwlr_virtual_pointer_v1 *pointer, uint32_t x,
+    uint32_t y
+) {
+    uint32_t output_width  = state->current_output->width;
+    uint32_t output_height = state->current_output->height;
+
+    _apply_transform(
+        &x, &y, &output_width, &output_height, state->current_output->transform
+    );
+
+    zwlr_virtual_pointer_v1_motion_absolute(
+        pointer, 0, x, y, output_width, output_height
+    );
+    zwlr_virtual_pointer_v1_frame(pointer);
+    wl_display_flush(state->wl_display);
+}
+
+void virtual_pointer_move_relative(
+    struct zwlr_virtual_pointer_v1 *pointer, uint32_t time, int32_t dx,
+    int32_t dy
+) {
+    zwlr_virtual_pointer_v1_motion(
+        pointer, time, wl_fixed_from_int(dx), wl_fixed_from_int(dy)
+    );
+    zwlr_virtual_pointer_v1_frame(pointer);
+}
+
+void virtual_pointer_button(
+    struct zwlr_virtual_pointer_v1 *pointer, uint32_t time, uint32_t button,
+    uint32_t button_state
+) {
+    zwlr_virtual_pointer_v1_button(pointer, time, button, button_state);
+    zwlr_virtual_pointer_v1_frame(pointer);
+}

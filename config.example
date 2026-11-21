@@ -162,3 +162,8 @@ start_marker_size=8
 # Marker shape
 start_marker_shape=caret
 
+## Configuration for mouse mode ##
+[mode_mouse]
+# Pixels the pointer moves per key press
+step=10
+

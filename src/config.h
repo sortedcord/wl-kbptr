@@ -93,6 +93,10 @@ struct mode_drag_config {
     enum drag_marker_shape start_marker_shape;
 };
 
+struct mode_mouse_config {
+    int step; // pixels moved per key press
+};
+
 struct config {
     struct general_config       general;
     struct mode_tile_config     mode_tile;
@@ -101,6 +105,7 @@ struct config {
     struct mode_split_config    mode_split;
     struct mode_click_config    mode_click;
     struct mode_drag_config     mode_drag;
+    struct mode_mouse_config    mode_mouse;
 };
 
 /**
